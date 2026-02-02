@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import requests
 import json
+import base64
+import os
+from pathlib import Path
 from config_manager import config
 
 # 东方财富 API Headers
@@ -9,7 +12,6 @@ HEADERS = config.headers
 def get_index_history(secid, days=3):
     """从东方财富获取最近N天的K线数据"""
     try:
-        # 东方财富K线API
         url = (
             f"http://push2his.eastmoney.com/api/qt/stock/kline/get?"
             f"secid={secid}&fields1=f1,f2,f3,f4,f5,f6&"
@@ -21,10 +23,9 @@ def get_index_history(secid, days=3):
         data = resp.json()
         
         if data.get("data") and data["data"].get("klines"):
-            klines = data["data"]["klines"][-days:]  # 取最近N天
+            klines = data["data"]["klines"][-days:]
             result = []
             for line in klines:
-                # 格式: 日期,开盘,收盘,最高,最低,成交量,成交额,振幅,涨跌幅,涨跌额,换手率
                 parts = line.split(",")
                 result.append({
                     "日期": parts[0],
@@ -60,7 +61,7 @@ def get_realtime_quote(secid):
         if data.get("data"):
             d = data["data"]
             return {
-                "最新价": d.get("f43", 0) / 100,  # 需要除以100
+                "最新价": d.get("f43", 0) / 100,
                 "涨跌幅": d.get("f170", 0) / 100,
                 "涨跌额": d.get("f171", 0) / 100,
                 "今开": d.get("f46", 0) / 100,
@@ -93,7 +94,6 @@ def get_money_flow(secid, days=3):
             klines = data["data"]["klines"][-days:]
             result = []
             for line in klines:
-                # 格式: 日期,主力净流入,小单净流入,中单净流入,大单净流入,超大单净流入,...
                 parts = line.split(",")
                 result.append({
                     "日期": parts[0],
@@ -145,40 +145,203 @@ def get_sector_data():
         print(f"获取热门板块数据失败: {e}")
         return None
 
+def get_chip_distribution(secid):
+    """获取筹码分布简略数据"""
+    try:
+        url = (
+            f"http://push2.eastmoney.com/api/qt/stock/get?"
+            f"secid={secid}&"
+            f"fields=f43,f57,f58,f164,f165,f166,f183,f184,f185"
+        )
+        
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        data = resp.json()
+        
+        if data.get("data"):
+            d = data["data"]
+            return {
+                "最新价": d.get("f43", 0) / 100,
+                "筹码集中度": d.get("f164", 0) / 10,
+                "3日集中度": d.get("f165", 0) / 10,
+                "10日集中度": d.get("f166", 0) / 10,
+                "机构持股数": d.get("f184", 0) / 10000,
+                "机构持股比例": d.get("f185", 0) / 100,
+            }
+        return None
+    except Exception as e:
+        print(f"获取筹码分布数据失败: {e}")
+        return None
+
+def get_stock_chip_image_and_data(code):
+    """为个股获取筹码分布图（base64编码）和详细数据。
+    
+    Returns:
+        tuple: (img_base64, chip_data_dict) 或 (None, None)
+        chip_data_dict 包含：
+        - 日期: str
+        - 获利比例: str
+        - 平均成本: str
+        - 90%成本: str
+        - 90%集中度: str
+        - 70%成本: str
+        - 70%集中度: str
+    """
+    driver = None
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from webdriver_manager.chrome import ChromeDriverManager
+        from selenium.webdriver.chrome.service import Service
+        import time
+        
+        if code.startswith('0'):
+            url = f"https://quote.eastmoney.com/concept/sz{code}.html#chart-k-cyq"
+        else:
+            url = f"https://quote.eastmoney.com/concept/sh{code}.html#chart-k-cyq"
+        
+        print(f"正在获取 {code} 的筹码分布信息...")
+        
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--start-maximized')
+        options.add_argument(f'user-agent={HEADERS["User-Agent"]}')
+        prefs = {"profile.managed_default_content_settings.images": 1}
+        options.add_experimental_option("prefs", prefs)
+        
+        print(f"创建 Chrome 浏览器...")
+        chromedriver_path = ChromeDriverManager().install()
+        service = Service(chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(30)
+        
+        print(f"访问URL: {url}")
+        driver.get(url)
+        
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        print(f"等待页面加载...")
+        time.sleep(4)
+        
+        # 1. 获取筹码分布图
+        print(f"查找筹码分布canvas...")
+        canvas_element = None
+        chip_xpath = '/html/body/div[1]/div/div[5]/div[1]/div/div[3]/div/div[4]/canvas'
+        
+        try:
+            canvas_element = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, chip_xpath))
+            )
+            print(f"✓ 找到筹码分布canvas")
+        except Exception as e:
+            print(f"xpath定位失败: {e}")
+            # 备选方案
+            try:
+                main_chart = driver.find_element(By.ID, "main_time_chart")
+                canvases = main_chart.find_elements(By.TAG_NAME, "canvas")
+                for canvas in canvases:
+                    try:
+                        size = canvas.size
+                        parent = canvas.find_element(By.XPATH, "..")
+                        parent_class = parent.get_attribute('class') or ""
+                        if 'cyq' in parent_class and 250 <= size['width'] <= 300:
+                            canvas_element = canvas
+                            print(f"✓ 备选方案找到筹码分布canvas")
+                            break
+                    except:
+                        continue
+            except Exception as e2:
+                print(f"备选方案也失败: {e2}")
+        
+        # 截图
+        img_base64 = None
+        if canvas_element:
+            try:
+                driver.execute_script("arguments[0].scrollIntoView(true);", canvas_element)
+                time.sleep(1)
+                screenshot = canvas_element.screenshot_as_png
+                if screenshot and len(screenshot) > 1000:
+                    img_base64 = base64.b64encode(screenshot).decode('utf-8')
+                    print(f"✓ {code} 筹码分布图获取成功")
+            except Exception as e:
+                print(f"截图失败: {e}")
+        
+        # 2. 获取筹码分布详细数据
+        print(f"查找筹码分布数据...")
+        chip_data = {}
+        chip_data_xpath = '/html/body/div[1]/div/div[5]/div[1]/div/div[3]/div/div[4]/div'
+        
+        try:
+            chip_data_div = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, chip_data_xpath))
+            )
+            
+           # 查找所有td元素，提取数据
+            tds = chip_data_div.find_elements(By.TAG_NAME, "td")
+            
+            current_label = None
+            for td in tds:
+                td_text = td.text.strip()
+                td_class = td.get_attribute('class') or ""
+                
+                if not td_text:
+                    continue
+                
+                # 如果是标签（以：结尾）
+                if td_text.endswith(':'):
+                    label = td_text[:-1]  # 去掉冒号
+                    # 处理重复的"集中度"标签，根据上下文区分
+                    if label == '集中度':
+                        if '90%成本' in chip_data and '90%集中度' not in chip_data:
+                            current_label = '90%集中度'
+                        elif '70%成本' in chip_data and '70%集中度' not in chip_data:
+                            current_label = '70%集中度'
+                        else:
+                            current_label = label
+                    else:
+                        current_label = label
+                # 如果是值（class为qcyq_t_v或bltd2）
+                elif 'qcyq_t_v' in td_class or 'bltd2' in td_class:
+                    if current_label:
+                        chip_data[current_label] = td_text
+                        current_label = None
+            
+            print(f"✓ 筹码分布数据获取成功: {list(chip_data.keys())}")
+            
+        except Exception as e:
+            print(f"获取筹码分布数据失败: {e}")
+        
+        return img_base64, chip_data if chip_data else None
+            
+    except Exception as e:
+        print(f"获取 {code} 筹码分布信息失败: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
+
+def get_stock_chip_image(code):
+    """为个股获取筹码分布图（base64编码）。
+    
+    注：这是兼容旧代码的包装函数，推荐使用 get_stock_chip_image_and_data()
+    """
+    img_base64, _ = get_stock_chip_image_and_data(code)
+    return img_base64
+
 def is_trading_day():
-    """
-    检查今天是否为交易日
-    1. 首先检查是否为周末
-    2. 尝试调用节假日 API 识别
-    3. 如果识别失败，则按工作日处理
-    """
+    """检查今天是否为交易日"""
     from datetime import datetime
     now = datetime.now()
     return True
-    # 1. 周六周日肯定不是交易日
-    if now.weekday() >= 5:
-        return False
-        
-    # 2. 尝试通过 API 获取节假日信息 (使用节假日 API)
-    try:
-        # 使用 timor.tech 的免费节假日 API
-        url = f"https://timor.tech/api/holiday/info/{now.strftime('%Y-%m-%d')}"
-        # 设置较短的超时，避免 API 挂掉导致任务阻塞
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            data = resp.json()
-            # type: 0 工作日, 1 周末, 2 节日, 3 调休
-            # 交易日通常是 type 为 0 或 3 的日子
-            # 但 A 股节假日调休的工作日通常也不开市（补班不补市）
-            # 所以只要是 type > 0，通常就不是交易日
-            holiday_type = data.get("type", {}).get("type", 0)
-            if holiday_type > 0:
-                print(f"检测到今日为非交易日 (类型: {holiday_type})")
-                return False
-            return True
-    except Exception as e:
-        print(f"识别交易日失败 (API 异常)，将按工作日处理: {e}")
-        
-    # 3. 兜底逻辑：如果是周一到周五，识别失败则视为交易日
-    return True
-

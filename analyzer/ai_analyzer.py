@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import subprocess
 
+
 def call_ai(prompt):
     """调用 AI CLI 执行分析"""
     # Qoder CLI 路径
     qodercli_path = "/Applications/Qoder.app/Contents/Resources/app/resources/bin/aarch64_darwin/qodercli"
-    
+
     try:
         # 使用 qodercli 进行分析
         result = subprocess.run(
@@ -25,6 +26,7 @@ def call_ai(prompt):
     except Exception as e:
         return f"*AI 分析出错: {e}*"
 
+
 def ai_analyze_target(name, data):
     """为单个标的调用 AI 进行分析"""
     prompt = f"""你是我的资本市场分析助手，拥有丰富的炒股实战经验，尤其对A股市场风格有深刻的理解。请基于以下 {name} 的市场数据，给出专业的投资分析和可落地的实施方案建议：
@@ -39,6 +41,7 @@ def ai_analyze_target(name, data):
 请用中文回答，保持客观专业，控制在200字以内。"""
     return call_ai(prompt)
 
+
 def ai_analyze_summary(full_content):
     """为全市场和多标的关联调用 AI 进行综合总结"""
     prompt = f"""请基于以下多标的分析数据，进行一个简短的市场综合总结：
@@ -52,10 +55,11 @@ def ai_analyze_summary(full_content):
 请用中文回答，专业干练，控制在150字以内。"""
     return call_ai(prompt)
 
+
 def ai_analyze_cyclical_industry(industry_name, industry_data=None):
     """为周期性行业调用 AI 进行周期阶段分析"""
     data_str = f"实时行情数据: {industry_data}" if industry_data else "暂无实时数据，请根据你的知识储备进行分析。"
-    
+
     prompt = f"""你是专业的行业研究员。请对 {industry_name} 行业进行周期性分析。
     
 {data_str}

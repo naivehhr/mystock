@@ -55,7 +55,7 @@ def main():
         target_report, status = generate_target_report(target)
         
         # 单标的 AI 分析
-        if status["history"] or status["money_flow"]:
+        if status["history"] or status["money_flow"] or status.get("chip_distribution"):
             has_any_valid_data = True
             target_ai = ai_analyze_target(name, target_report)
         else:
