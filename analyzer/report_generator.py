@@ -29,6 +29,16 @@ def generate_target_report(target):
         report_lines.append("*实时行情获取失败*")
     report_lines.append("")
     
+    # K线走势图
+    report_lines.append("### 日K线走势图")
+    # 根据 secid 前缀判断市场代码: 1=sh(上证), 0=sz(深证)
+    market_prefix = secid.split('.')[0]
+    market_code = "sh" if market_prefix == "1" else "sz"
+    stock_code = target['code']
+    kline_url = f"http://image.sinajs.cn/newchart/daily/n/{market_code}{stock_code}.gif"
+    report_lines.append(f"![{name}日K]({kline_url})")
+    report_lines.append("")
+    
     # 1. 行情数据
     report_lines.append("### 行情数据（最近3天）")
     history = get_index_history(secid, 3)

@@ -27,6 +27,7 @@ TARGETS = [
     {"code": "000300", "name": "沪深300", "secid": "1.000300", "type": "index"},
     {"code": "161725", "name": "招商中证白酒指数", "secid": "0.161725", "type": "fund"},
     {"code": "600036", "name": "招商银行", "secid": "1.600036", "type": "stock"},
+    {"code": "601398", "name": "工商银行", "secid": "1.601398", "type": "stock"},
 ]
 
 def main():
