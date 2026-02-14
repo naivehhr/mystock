@@ -60,14 +60,26 @@ def get_realtime_quote(secid):
         
         if data.get("data"):
             d = data["data"]
+            
+            # 判断市场类型：secid格式为 "0.xxxx" 表示深圳(基金/深股通)，"1.xxxx" 表示上海(指数/沪股通)
+            # 基金(secid以0.开头且为6位数)需要除以1000，股票和指数除以100
+            market_type = secid.split('.')[0]
+            stock_code = secid.split('.')[1] if '.' in secid else ''
+            
+            # 判断是否为基金：深圳市场(0.x)且代码以1-3开头通常是基金
+            is_fund = (market_type == '0' and len(stock_code) == 6 and stock_code.startswith(('1', '2', '3')))
+            
+            # 价格除数：基金除以1000，股票和指数除以100
+            price_divisor = 1000 if is_fund else 100
+            
             return {
-                "最新价": d.get("f43", 0) / 100,
+                "最新价": d.get("f43", 0) / price_divisor,
                 "涨跌幅": d.get("f170", 0) / 100,
-                "涨跌额": d.get("f171", 0) / 100,
-                "今开": d.get("f46", 0) / 100,
-                "最高": d.get("f44", 0) / 100,
-                "最低": d.get("f45", 0) / 100,
-                "昨收": d.get("f60", 0) / 100,
+                "涨跌额": d.get("f171", 0) / price_divisor,
+                "今开": d.get("f46", 0) / price_divisor,
+                "最高": d.get("f44", 0) / price_divisor,
+                "最低": d.get("f45", 0) / price_divisor,
+                "昨收": d.get("f60", 0) / price_divisor,
                 "成交量": d.get("f47", 0),
                 "成交额": d.get("f48", 0),
             }

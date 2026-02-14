@@ -87,15 +87,15 @@ def generate_target_report(target):
         report_lines.append("*资金流向获取失败*")
     report_lines.append("")
     
-    # 3. 筹码分布
-    report_lines.append("### 筹码分布")
-    
+    # 3. 筹码分布（仅个股显示）
     # 只有个股才获取筹码分布图和详细数据
     chip_image_base64 = None
     chip_detail_data = None
     chip_data = None  # 初始化变量
     
     if target['type'] == 'stock':
+        report_lines.append("### 筹码分布")
+        
         print(f"\n--- 开始获取 {name} ({target['code']}) 的筹码分布信息 ---")
         try:
             chip_image_base64, chip_detail_data = get_stock_chip_image_and_data(target['code'])
@@ -138,38 +138,6 @@ def generate_target_report(target):
             traceback.print_exc()
         print(f"--- 筹码分布信息获取结束 ---\n")
     
-    # 如果没有获取到详细数据，尝试使用API获取简略数据
-    if not chip_detail_data:
-        chip_data = get_chip_distribution(f"1.{target['code']}" if target['type'] == 'stock' else secid)
-        if chip_data and chip_data.get('筹码集中度', 0) > 0:
-            concentration = chip_data['筹码集中度']
-            concentration_3d = chip_data.get('3日集中度', 0)
-            concentration_10d = chip_data.get('10日集中度', 0)
-            
-            # 根据集中度给出评价
-            if concentration > 15:
-                note = "高度集中"
-            elif concentration > 10:
-                note = "相对集中"
-            elif concentration > 5:
-                note = "适度分散"
-            else:
-                note = "高度分散"
-            
-            if not chip_image_base64:
-                report_lines.append(f"- **当前集中度**: {concentration:.1f}% ({note})")
-            if concentration_3d > 0:
-                report_lines.append(f"- **3日趋势**: {concentration_3d:.1f}%")
-            if concentration_10d > 0:
-                report_lines.append(f"- **10日趋势**: {concentration_10d:.1f}%")
-            
-            if chip_data.get('机构持股比例', 0) > 0:
-                report_lines.append(f"- **机构持股**: {chip_data['机构持股比例']:.2f}%")
-            
-            report_lines.append("*(数据来源: 东方财富)*")
-        else:
-            if not chip_image_base64 and not chip_detail_data:
-                report_lines.append("*筹码分布数据获取失败*")
     report_lines.append("")
     
     return "\n".join(report_lines), {"history": history, "money_flow": money_flow, "chip_distribution": chip_data}
