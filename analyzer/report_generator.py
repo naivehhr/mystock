@@ -29,14 +29,14 @@ def generate_target_report(target):
         report_lines.append("*实时行情获取失败*")
     report_lines.append("")
     
-    # K线走势图
-    report_lines.append("### 日K线走势图")
-    # 根据 secid 前缀判断市场代码: 1=sh(上证), 0=sz(深证)
+    # K 线走势图
+    report_lines.append("### 日 K 线走势图")
+    # 根据 secid 前缀判断市场代码：1=sh(上证), 0=sz(深证)
     market_prefix = secid.split('.')[0]
     market_code = "sh" if market_prefix == "1" else "sz"
     stock_code = target['code']
     kline_url = f"http://image.sinajs.cn/newchart/daily/n/{market_code}{stock_code}.gif"
-    report_lines.append(f"![{name}日K]({kline_url})")
+    report_lines.append(f"![{name}日 K]({kline_url})")
     report_lines.append("")
     
     # 1. 行情数据
@@ -137,6 +137,42 @@ def generate_target_report(target):
             import traceback
             traceback.print_exc()
         print(f"--- 筹码分布信息获取结束 ---\n")
+    
+    report_lines.append("")
+    
+    # 4. 恒生科技指数特别分析（如果配置了 HSTECH）
+    if target.get('is_hstech', False):
+        from hstech_analyzer import HSTECHAnalyzerFacade
+        
+        report_lines.append("### 恒生科技指数智能分析")
+        print(f"\n--- 开始生成 {name} 智能分析报告 ---")
+        
+        try:
+            analyzer = HSTECHAnalyzerFacade()
+            report = analyzer.generate_full_report(save_chart=True, verbose=False)
+            
+            if report:
+                # 添加文字分析
+                report_lines.append("**智能分析结果**")
+                report_lines.append("")
+                report_lines.append(report["llm_analysis"])
+                report_lines.append("")
+                
+                # 添加 Base64 图表（带滚动容器）
+                if report.get("chart_base64"):
+                    print(f"成功获取 {name} 的分析图表（Base64）")
+                    # 使用滚动容器包裹图片，支持横向滑动
+                    report_lines.append(f'<img src="data:image/png;base64,{report["chart_base64"]}" alt="{name}技术分析图" style="display: block; width: 100px; min-width: 100%; height: auto;">')
+                else:
+                    print(f"未能获取 {name} 的分析图表 Base64 数据")
+            else:
+                print(f"恒生科技指数分析失败")
+                
+        except Exception as e:
+            print(f"恒生科技指数分析错误：{e}")
+            import traceback
+            traceback.print_exc()
+        print(f"--- 智能分析报告生成结束 ---\n")
     
     report_lines.append("")
     
