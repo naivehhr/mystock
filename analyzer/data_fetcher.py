@@ -11,6 +11,10 @@ HEADERS = config.headers
 
 def get_index_history(secid, days=3):
     """从东方财富获取最近N天的K线数据"""
+    return get_kline_data(secid, days)
+
+def get_kline_data(secid, days=3):
+    """从东方财富获取最近N天的K线数据（通用方法）"""
     try:
         url = (
             f"http://push2his.eastmoney.com/api/qt/stock/kline/get?"

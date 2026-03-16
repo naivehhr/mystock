@@ -3,6 +3,7 @@ from datetime import datetime
 from config_manager import config
 from data_fetcher import get_realtime_quote, get_index_history, get_money_flow, get_sector_data, get_chip_distribution, get_stock_chip_image_and_data
 from cyclical_analyzer import analyze_cyclical_industries
+from volume_analyzer import get_volume_analysis_report, get_volume_feature_summary
 
 # 配置
 REPORTS_DIR = config.reports_dir
@@ -86,6 +87,20 @@ def generate_target_report(target):
     else:
         report_lines.append("*资金流向获取失败*")
     report_lines.append("")
+    
+    # 2.5 成交量特征分析
+    print(f"\n--- 开始获取 {name} 的成交量分析 ---")
+    try:
+        volume_report = get_volume_analysis_report(secid, days=20)
+        if volume_report:
+            report_lines.append("### 成交量特征分析")
+            report_lines.append("")
+            report_lines.append(volume_report)
+            report_lines.append("")
+            print(f"成功获取 {name} 的成交量分析")
+    except Exception as e:
+        print(f"获取 {name} 成交量分析失败: {e}")
+    print(f"--- 成交量分析获取结束 ---\n")
     
     # 3. 筹码分布（仅个股显示）
     # 只有个股才获取筹码分布图和详细数据
@@ -176,7 +191,14 @@ def generate_target_report(target):
     
     report_lines.append("")
     
-    return "\n".join(report_lines), {"history": history, "money_flow": money_flow, "chip_distribution": chip_data}
+    # 获取成交量特征摘要（用于AI分析）
+    volume_summary = None
+    try:
+        volume_summary = get_volume_feature_summary(secid, days=20)
+    except Exception as e:
+        print(f"获取成交量特征摘要失败: {e}")
+    
+    return "\n".join(report_lines), {"history": history, "money_flow": money_flow, "chip_distribution": chip_data, "volume_analysis": volume_summary}
 
 def generate_sector_report():
     """生成热门板块报告内容"""
