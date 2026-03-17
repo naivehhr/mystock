@@ -50,3 +50,5 @@ reports/
 # Logs
 *.log
 logs/
+stock-agnet/backend/data_cache
+*.db

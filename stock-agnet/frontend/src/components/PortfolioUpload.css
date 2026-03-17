@@ -1,0 +1,257 @@
+/* ========== 持仓上传组件 ========== */
+.portfolio-upload {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* 上传卡片 */
+.upload-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-md);
+}
+
+/* 字段说明 */
+.field-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.legend-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-mark.required {
+  background: var(--color-down);
+}
+
+.legend-mark.optional {
+  background: var(--color-text-muted);
+}
+
+/* ========== 持仓表单列表 ========== */
+.positions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.position-form-card {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-base);
+}
+
+.position-form-card:hover {
+  border-color: var(--color-accent);
+}
+
+.position-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.position-number {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+}
+
+.btn-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-remove:hover {
+  background: var(--color-down-bg);
+  color: var(--color-down);
+}
+
+/* 表单字段 */
+.position-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.5fr;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .field-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .field-row .field-group:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .field-row .field-group:last-child {
+    grid-column: span 1;
+  }
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.field-group.optional-field .field-label {
+  color: var(--color-text-secondary);
+}
+
+.field-group.optional-field .field-label::after {
+  content: ' (可选)';
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+
+.field-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.field-label.required::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--color-down);
+}
+
+.field-group .input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+}
+
+.field-group .input.error {
+  border-color: var(--color-down);
+}
+
+.field-group .input:focus {
+  border-color: var(--color-accent);
+}
+
+.field-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-down);
+}
+
+/* 实时预览 */
+.position-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.preview-label {
+  color: var(--color-text-muted);
+}
+
+.preview-value {
+  font-family: var(--font-family-mono);
+  color: var(--color-text-secondary);
+}
+
+.preview-value.up {
+  color: var(--color-up);
+}
+
+.preview-value.down {
+  color: var(--color-down);
+}
+
+/* 添加持仓按钮 */
+.add-position {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-divider);
+}
+
+/* 提交按钮 */
+.upload-submit {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-divider);
+}
+
+.btn-lg {
+  padding: var(--spacing-md) var(--spacing-3xl);
+  font-size: var(--font-size-md);
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 640px) {
+  .upload-card {
+    padding: var(--spacing-lg);
+  }
+  
+  .field-legend {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+}
